@@ -1,0 +1,1 @@
+PASS development HTTP/gRPC CRUD smoke test with PGlite PostgreSQL-compatible test database. Docker/PostgreSQL 16 Compose execution and concurrent transactional claim not verified in this environment.

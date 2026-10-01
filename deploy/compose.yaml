@@ -1,0 +1,126 @@
+{
+  "name": "griyo",
+  "services": {
+    "postgres": {
+      "image": "postgres:16-alpine",
+      "env_file": [
+        ".env"
+      ],
+      "volumes": [
+        "postgresData:/var/lib/postgresql/data"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""
+        ],
+        "interval": "5s",
+        "timeout": "3s",
+        "retries": 20
+      },
+      "restart": "unless-stopped"
+    },
+    "workspace": {
+      "build": {
+        "context": "../../griyo-backend-service-workspace"
+      },
+      "env_file": [
+        ".env"
+      ],
+      "restart": "unless-stopped",
+      "environment": {
+        "GRPC_ADDR": ":50051"
+      },
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        }
+      }
+    },
+    "fleet": {
+      "build": {
+        "context": "../../griyo-backend-service-fleet"
+      },
+      "env_file": [
+        ".env"
+      ],
+      "restart": "unless-stopped",
+      "environment": {
+        "GRPC_ADDR": ":50052"
+      },
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        }
+      }
+    },
+    "task": {
+      "build": {
+        "context": "../../griyo-backend-service-task"
+      },
+      "env_file": [
+        ".env"
+      ],
+      "restart": "unless-stopped",
+      "environment": {
+        "GRPC_ADDR": ":50053"
+      },
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        }
+      }
+    },
+    "gateway": {
+      "build": {
+        "context": ".."
+      },
+      "env_file": [
+        ".env"
+      ],
+      "restart": "unless-stopped",
+      "depends_on": [
+        "workspace",
+        "fleet",
+        "task"
+      ],
+      "ports": [
+        "127.0.0.1:8080:8080"
+      ]
+    },
+    "runner": {
+      "build": {
+        "context": "../../griyo-backend-service-runner"
+      },
+      "env_file": [
+        ".env"
+      ],
+      "restart": "unless-stopped",
+      "profiles": [
+        "runner"
+      ],
+      "volumes": [
+        "runnerWorkspaces:/workspaces"
+      ],
+      "depends_on": [
+        "gateway"
+      ]
+    },
+    "frontend": {
+      "build": {
+        "context": "../../griyo-frontend"
+      },
+      "ports": [
+        "127.0.0.1:3000:80"
+      ],
+      "depends_on": [
+        "gateway"
+      ],
+      "restart": "unless-stopped"
+    }
+  },
+  "volumes": {
+    "postgresData": {},
+    "runnerWorkspaces": {}
+  }
+}
